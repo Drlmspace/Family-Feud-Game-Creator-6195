@@ -121,6 +121,17 @@ const playSound = (url) => {
   }
 };
 
+// Helper function to reset all answers in all questions
+const resetAllAnswers = (questions) => {
+  return questions.map(question => ({
+    ...question,
+    answers: question.answers.map(answer => ({
+      ...answer,
+      revealed: false
+    }))
+  }));
+};
+
 function gameReducer(state, action) {
   switch (action.type) {
     case 'UPDATE_GAME_SETTINGS':
@@ -310,24 +321,28 @@ function gameReducer(state, action) {
       // Play game start sound
       playSound(state.gameSettings.sounds.gameStart);
       
+      // Reset all answers to be covered up
+      const resetQuestions = resetAllAnswers(state.questions);
+      
       return {
         ...initialState,
         gameSettings: state.gameSettings, // Preserve settings
-        questions: state.questions,
+        questions: resetQuestions, // Reset with all answers covered
         fastMoneyQuestions: state.fastMoneyQuestions
       };
 
     case 'RESET_ROUND':
-      const resetQuestions = [...state.questions];
-      if (resetQuestions[state.currentQuestionIndex]) {
-        resetQuestions[state.currentQuestionIndex].answers.forEach(answer => {
+      const resetRoundQuestions = [...state.questions];
+      if (resetRoundQuestions[state.currentQuestionIndex]) {
+        // Reset all answers in the current question to be covered up
+        resetRoundQuestions[state.currentQuestionIndex].answers.forEach(answer => {
           answer.revealed = false;
         });
       }
       
       return {
         ...state,
-        questions: resetQuestions,
+        questions: resetRoundQuestions,
         strikes: 0,
         gamePhase: 'playing',
         roundScore: 0,
@@ -371,9 +386,14 @@ function gameReducer(state, action) {
       };
 
     case 'LOAD_DATA':
+      // When loading data, ensure all answers start covered
+      const loadedQuestions = action.payload.questions ? 
+        resetAllAnswers(action.payload.questions) : state.questions;
+      
       return {
         ...state,
-        ...action.payload
+        ...action.payload,
+        questions: loadedQuestions
       };
 
     default:
