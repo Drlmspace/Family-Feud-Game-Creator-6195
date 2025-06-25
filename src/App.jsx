@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import AdminPanel from './components/AdminPanel';
+import AdminPanelContainer from './components/AdminPanelContainer';
 import GameShow from './components/GameShow';
 import Navigation from './components/Navigation';
 import { GameProvider } from './context/GameContext';
@@ -14,7 +14,7 @@ function App() {
           <Navigation />
           <Routes>
             <Route path="/" element={<Navigate to="/game" replace />} />
-            <Route path="/admin" element={<AdminPanel />} />
+            <Route path="/admin" element={<AdminPanelContainer />} />
             <Route path="/game" element={<GameShow />} />
           </Routes>
         </div>

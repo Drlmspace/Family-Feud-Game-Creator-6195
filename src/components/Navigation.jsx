@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useGame } from '../context/GameContext';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
@@ -8,7 +9,8 @@ const { FiSettings, FiPlay, FiHome } = FiIcons;
 
 function Navigation() {
   const location = useLocation();
-
+  const { state } = useGame();
+  
   const navItems = [
     { path: '/game', label: 'Game Show', icon: FiPlay },
     { path: '/admin', label: 'Admin Panel', icon: FiSettings }
@@ -20,16 +22,12 @@ function Navigation() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-2">
             <SafeIcon icon={FiHome} className="text-yellow-400 text-2xl" />
-            <h1 className="text-2xl font-bold text-white">Family Feud</h1>
+            <h1 className="text-2xl font-bold text-white">{state.gameSettings.title}</h1>
           </div>
           
           <div className="flex space-x-4">
             {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className="relative"
-              >
+              <Link key={item.path} to={item.path} className="relative">
                 <motion.div
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
                     location.pathname === item.path

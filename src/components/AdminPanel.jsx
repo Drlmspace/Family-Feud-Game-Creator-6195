@@ -4,13 +4,13 @@ import { useGame } from '../context/GameContext';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiPlus, FiEdit2, FiTrash2, FiSave, FiX, FiZap } = FiIcons;
+const { FiPlus, FiEdit2, FiTrash2, FiSave, FiX, FiZap, FiLogOut, FiSettings, FiVolume2, FiPlay } = FiIcons;
 
-function AdminPanel() {
+function AdminPanel({ onLogout }) {
   const { state, dispatch } = useGame();
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [activeTab, setActiveTab] = useState('regular'); // 'regular' or 'fast-money'
+  const [activeTab, setActiveTab] = useState('regular'); // 'regular', 'fast-money', 'settings'
 
   const [formData, setFormData] = useState({
     question: '',
@@ -23,6 +23,11 @@ function AdminPanel() {
     ]
   });
 
+  const [settingsData, setSettingsData] = useState({
+    title: state.gameSettings.title,
+    sounds: { ...state.gameSettings.sounds }
+  });
+
   const resetForm = () => {
     setFormData({
       question: '',
@@ -33,6 +38,37 @@ function AdminPanel() {
         { text: '', points: 0 },
         { text: '', points: 0 }
       ]
+    });
+  };
+
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      onLogout();
+    }
+  };
+
+  const handleSaveSettings = () => {
+    dispatch({
+      type: 'UPDATE_GAME_SETTINGS',
+      payload: {
+        title: settingsData.title,
+        sounds: settingsData.sounds
+      }
+    });
+    alert('Settings saved successfully!');
+  };
+
+  const handleTestSound = (soundType) => {
+    dispatch({ type: 'PLAY_SOUND', payload: soundType });
+  };
+
+  const handleSoundChange = (soundType, url) => {
+    setSettingsData({
+      ...settingsData,
+      sounds: {
+        ...settingsData.sounds,
+        [soundType]: url
+      }
     });
   };
 
@@ -99,16 +135,36 @@ function AdminPanel() {
     <div className="max-w-6xl mx-auto p-6">
       <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-bold text-white">Admin Panel</h2>
-          <motion.button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <SafeIcon icon={FiPlus} />
-            <span>Add Question</span>
-          </motion.button>
+          <div className="flex items-center space-x-4">
+            <h2 className="text-3xl font-bold text-white">Admin Panel</h2>
+            <div className="bg-green-500/20 border border-green-400 rounded-lg px-3 py-1">
+              <span className="text-green-400 text-sm font-medium">Authenticated</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            {activeTab !== 'settings' && (
+              <motion.button
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <SafeIcon icon={FiPlus} />
+                <span>Add Question</span>
+              </motion.button>
+            )}
+            
+            <motion.button
+              onClick={handleLogout}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-lg flex items-center space-x-2 transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <SafeIcon icon={FiLogOut} />
+              <span>Logout</span>
+            </motion.button>
+          </div>
         </div>
 
         {/* Tab Navigation */}
@@ -138,10 +194,106 @@ function AdminPanel() {
             <SafeIcon icon={FiZap} />
             <span>Fast Money ({state.fastMoneyQuestions.length})</span>
           </motion.button>
+          <motion.button
+            onClick={() => setActiveTab('settings')}
+            className={`px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2 ${
+              activeTab === 'settings'
+                ? 'bg-purple-500 text-white'
+                : 'bg-white/10 text-white/70 hover:bg-white/20'
+            }`}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <SafeIcon icon={FiSettings} />
+            <span>Game Settings</span>
+          </motion.button>
         </div>
 
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <div className="space-y-6">
+            <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+              <h3 className="text-xl font-bold text-white mb-6">Game Settings</h3>
+              
+              {/* Game Title */}
+              <div className="mb-6">
+                <label className="block text-white font-medium mb-2">Game Title</label>
+                <input
+                  type="text"
+                  value={settingsData.title}
+                  onChange={(e) => setSettingsData({ ...settingsData, title: e.target.value })}
+                  className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50"
+                  placeholder="Enter game title..."
+                />
+              </div>
+
+              {/* Sound Settings */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-semibold text-white flex items-center space-x-2">
+                  <SafeIcon icon={FiVolume2} />
+                  <span>Sound Settings</span>
+                </h4>
+                
+                {Object.entries(settingsData.sounds).map(([soundType, url]) => (
+                  <div key={soundType} className="space-y-2">
+                    <label className="block text-white/90 font-medium capitalize">
+                      {soundType.replace(/([A-Z])/g, ' $1').trim()} Sound
+                    </label>
+                    <div className="flex space-x-2">
+                      <input
+                        type="url"
+                        value={url}
+                        onChange={(e) => handleSoundChange(soundType, e.target.value)}
+                        className="flex-1 p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50"
+                        placeholder="Enter sound URL..."
+                      />
+                      <motion.button
+                        onClick={() => handleTestSound(soundType)}
+                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg flex items-center space-x-2 transition-colors"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <SafeIcon icon={FiPlay} />
+                        <span>Test</span>
+                      </motion.button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Save Settings */}
+              <div className="mt-8 pt-6 border-t border-white/10">
+                <motion.button
+                  onClick={handleSaveSettings}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 rounded-lg font-bold flex items-center space-x-2 transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <SafeIcon icon={FiSave} />
+                  <span>Save Settings</span>
+                </motion.button>
+              </div>
+
+              {/* Sound Examples */}
+              <div className="mt-6 p-4 bg-yellow-500/10 border border-yellow-400/30 rounded-lg">
+                <h5 className="text-yellow-400 font-semibold mb-2">Sound URL Examples:</h5>
+                <div className="text-white/70 text-sm space-y-1">
+                  <div>• Wrong Answer: Buzzer or error sound</div>
+                  <div>• Correct Answer: Ding or success sound</div>
+                  <div>• Game Start: Fanfare or theme music</div>
+                  <div>• Round End: Victory or completion sound</div>
+                </div>
+                <p className="text-white/50 text-xs mt-2">
+                  Use direct links to audio files (.mp3, .wav, .ogg). Some free sound sites: freesound.org, zapsplat.com
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Question Form */}
         <AnimatePresence>
-          {(showAddForm || editingQuestion) && (
+          {(showAddForm || editingQuestion) && activeTab !== 'settings' && (
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -222,66 +374,69 @@ function AdminPanel() {
           )}
         </AnimatePresence>
 
-        <div className="space-y-4">
-          <h3 className="text-xl font-bold text-white mb-4">
-            {activeTab === 'fast-money' ? 'Fast Money Questions' : 'Regular Questions'} ({currentQuestions.length})
-          </h3>
-          
-          {currentQuestions.map((question, index) => (
-            <motion.div
-              key={question.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white/5 rounded-xl p-6 border border-white/10"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h4 className="text-lg font-semibold text-white mb-2 flex items-center space-x-2">
-                    {activeTab === 'fast-money' && <SafeIcon icon={FiZap} className="text-yellow-400" />}
-                    <span>#{index + 1}: {question.question}</span>
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {question.answers.map((answer, answerIndex) => (
-                      <div key={answerIndex} className="flex justify-between items-center bg-white/5 rounded-lg p-2">
-                        <span className="text-white">{answer.text}</span>
-                        <span className="text-yellow-400 font-bold">{answer.points} pts</span>
-                      </div>
-                    ))}
+        {/* Questions List */}
+        {activeTab !== 'settings' && (
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold text-white mb-4">
+              {activeTab === 'fast-money' ? 'Fast Money Questions' : 'Regular Questions'} ({currentQuestions.length})
+            </h3>
+            
+            {currentQuestions.map((question, index) => (
+              <motion.div
+                key={question.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white/5 rounded-xl p-6 border border-white/10"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h4 className="text-lg font-semibold text-white mb-2 flex items-center space-x-2">
+                      {activeTab === 'fast-money' && <SafeIcon icon={FiZap} className="text-yellow-400" />}
+                      <span>#{index + 1}: {question.question}</span>
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {question.answers.map((answer, answerIndex) => (
+                        <div key={answerIndex} className="flex justify-between items-center bg-white/5 rounded-lg p-2">
+                          <span className="text-white">{answer.text}</span>
+                          <span className="text-yellow-400 font-bold">{answer.points} pts</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex space-x-2 ml-4">
+                    <motion.button
+                      onClick={() => handleEditQuestion(question)}
+                      className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <SafeIcon icon={FiEdit2} />
+                    </motion.button>
+                    
+                    <motion.button
+                      onClick={() => handleDeleteQuestion(question.id)}
+                      className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <SafeIcon icon={FiTrash2} />
+                    </motion.button>
                   </div>
                 </div>
-                
-                <div className="flex space-x-2 ml-4">
-                  <motion.button
-                    onClick={() => handleEditQuestion(question)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <SafeIcon icon={FiEdit2} />
-                  </motion.button>
-                  
-                  <motion.button
-                    onClick={() => handleDeleteQuestion(question.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <SafeIcon icon={FiTrash2} />
-                  </motion.button>
+              </motion.div>
+            ))}
+            
+            {currentQuestions.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-white/50 text-lg">
+                  No {activeTab === 'fast-money' ? 'Fast Money' : 'regular'} questions added yet.
                 </div>
+                <div className="text-white/30 text-sm mt-2">Click "Add Question" to get started!</div>
               </div>
-            </motion.div>
-          ))}
-          
-          {currentQuestions.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-white/50 text-lg">
-                No {activeTab === 'fast-money' ? 'Fast Money' : 'regular'} questions added yet.
-              </div>
-              <div className="text-white/30 text-sm mt-2">Click "Add Question" to get started!</div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -53,7 +53,7 @@ function GameControls() {
   return (
     <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
       <h3 className="text-xl font-bold text-white mb-6">Game Controls</h3>
-
+      
       <div className="space-y-3">
         {!isGameComplete && (
           <>
@@ -168,9 +168,14 @@ function GameControls() {
         <div className="text-center">
           <div className="text-white/70 text-sm">Game Status</div>
           <div className="text-white font-bold">
-            {state.gamePhase === 'steal' ? 'STEAL OPPORTUNITY' : 
-             state.gamePhase === 'round-end' ? 'ROUND COMPLETE' : 
-             isGameComplete ? 'READY FOR FAST MONEY' : 'PLAYING'}
+            {state.gamePhase === 'steal' 
+              ? 'STEAL OPPORTUNITY' 
+              : state.gamePhase === 'round-end' 
+                ? 'ROUND COMPLETE' 
+                : isGameComplete 
+                  ? 'READY FOR FAST MONEY' 
+                  : 'PLAYING'
+            }
           </div>
         </div>
       </div>

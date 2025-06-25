@@ -3,6 +3,15 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 const GameContext = createContext();
 
 const initialState = {
+  gameSettings: {
+    title: 'Family Feud',
+    sounds: {
+      wrongAnswer: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
+      gameStart: 'https://www.soundjay.com/misc/sounds/tada-fanfare-a.wav',
+      correctAnswer: 'https://www.soundjay.com/misc/sounds/beep-07a.wav',
+      roundEnd: 'https://www.soundjay.com/misc/sounds/beep-10.wav'
+    }
+  },
   questions: [
     {
       id: 1,
@@ -99,22 +108,62 @@ const initialState = {
   winningTeam: null
 };
 
+// Sound utility functions
+const playSound = (url) => {
+  if (url && url.trim()) {
+    try {
+      const audio = new Audio(url);
+      audio.volume = 0.5; // Set volume to 50%
+      audio.play().catch(error => {
+        console.warn('Could not play sound:', error);
+      });
+    } catch (error) {
+      console.warn('Invalid sound URL:', error);
+    }
+  }
+};
+
 function gameReducer(state, action) {
   switch (action.type) {
+    case 'UPDATE_GAME_SETTINGS':
+      return {
+        ...state,
+        gameSettings: {
+          ...state.gameSettings,
+          ...action.payload
+        }
+      };
+
+    case 'UPDATE_SOUND_SETTINGS':
+      return {
+        ...state,
+        gameSettings: {
+          ...state.gameSettings,
+          sounds: {
+            ...state.gameSettings.sounds,
+            ...action.payload
+          }
+        }
+      };
+
+    case 'PLAY_SOUND':
+      playSound(state.gameSettings.sounds[action.payload]);
+      return state;
+
     case 'ADD_QUESTION':
       return {
         ...state,
         questions: [...state.questions, action.payload]
       };
-    
+
     case 'UPDATE_QUESTION':
       return {
         ...state,
-        questions: state.questions.map(q => 
+        questions: state.questions.map(q =>
           q.id === action.payload.id ? action.payload : q
         )
       };
-    
+
     case 'DELETE_QUESTION':
       return {
         ...state,
@@ -126,28 +175,30 @@ function gameReducer(state, action) {
         ...state,
         fastMoneyQuestions: [...state.fastMoneyQuestions, action.payload]
       };
-    
+
     case 'UPDATE_FAST_MONEY_QUESTION':
       return {
         ...state,
-        fastMoneyQuestions: state.fastMoneyQuestions.map(q => 
+        fastMoneyQuestions: state.fastMoneyQuestions.map(q =>
           q.id === action.payload.id ? action.payload : q
         )
       };
-    
+
     case 'DELETE_FAST_MONEY_QUESTION':
       return {
         ...state,
         fastMoneyQuestions: state.fastMoneyQuestions.filter(q => q.id !== action.payload)
       };
-    
+
     case 'REVEAL_ANSWER':
       const updatedQuestions = [...state.questions];
       const currentQuestion = updatedQuestions[state.currentQuestionIndex];
       const answerIndex = action.payload;
-      
+
       if (currentQuestion && currentQuestion.answers[answerIndex]) {
         currentQuestion.answers[answerIndex].revealed = true;
+        // Play correct answer sound
+        playSound(state.gameSettings.sounds.correctAnswer);
         return {
           ...state,
           questions: updatedQuestions,
@@ -155,9 +206,12 @@ function gameReducer(state, action) {
         };
       }
       return state;
-    
+
     case 'ADD_STRIKE':
       const newStrikes = state.strikes + 1;
+      // Play wrong answer sound
+      playSound(state.gameSettings.sounds.wrongAnswer);
+      
       if (newStrikes >= 3) {
         return {
           ...state,
@@ -169,9 +223,11 @@ function gameReducer(state, action) {
         ...state,
         strikes: newStrikes
       };
-    
+
     case 'AWARD_POINTS':
       const teamKey = action.payload.team === 'A' ? 'teamAScore' : 'teamBScore';
+      // Play round end sound
+      playSound(state.gameSettings.sounds.roundEnd);
       return {
         ...state,
         [teamKey]: state[teamKey] + action.payload.points,
@@ -179,7 +235,7 @@ function gameReducer(state, action) {
         strikes: 0,
         gamePhase: 'round-end'
       };
-    
+
     case 'NEXT_QUESTION':
       const nextIndex = state.currentQuestionIndex + 1;
       if (nextIndex < state.questions.length) {
@@ -193,7 +249,7 @@ function gameReducer(state, action) {
         };
       }
       return state;
-    
+
     case 'SWITCH_TEAM':
       return {
         ...state,
@@ -203,11 +259,16 @@ function gameReducer(state, action) {
     case 'START_FAST_MONEY':
       // Determine winning team
       const winningTeam = state.teamAScore > state.teamBScore ? 'A' : 'B';
+      // Play game start sound
+      playSound(state.gameSettings.sounds.gameStart);
       return {
         ...state,
         gamePhase: 'fast-money',
         winningTeam,
-        fastMoneyAnswers: { player1: [], player2: [] },
+        fastMoneyAnswers: {
+          player1: [],
+          player2: []
+        },
         fastMoneyScore: 0
       };
 
@@ -233,14 +294,17 @@ function gameReducer(state, action) {
         fastMoneyScore: totalScore,
         gamePhase: 'game-complete'
       };
-    
+
     case 'RESET_GAME':
+      // Play game start sound
+      playSound(state.gameSettings.sounds.gameStart);
       return {
         ...initialState,
+        gameSettings: state.gameSettings, // Preserve settings
         questions: state.questions,
         fastMoneyQuestions: state.fastMoneyQuestions
       };
-    
+
     case 'RESET_ROUND':
       const resetQuestions = [...state.questions];
       if (resetQuestions[state.currentQuestionIndex]) {
@@ -256,7 +320,13 @@ function gameReducer(state, action) {
         roundScore: 0,
         currentTeam: 'A'
       };
-    
+
+    case 'LOAD_DATA':
+      return {
+        ...state,
+        ...action.payload
+      };
+
     default:
       return state;
   }
@@ -271,7 +341,7 @@ export function GameProvider({ children }) {
     if (savedData) {
       try {
         const parsedData = JSON.parse(savedData);
-        if (parsedData.questions || parsedData.fastMoneyQuestions) {
+        if (parsedData.questions || parsedData.fastMoneyQuestions || parsedData.gameSettings) {
           dispatch({ type: 'LOAD_DATA', payload: parsedData });
         }
       } catch (error) {
@@ -280,13 +350,14 @@ export function GameProvider({ children }) {
     }
   }, []);
 
-  // Save data to localStorage whenever questions change
+  // Save data to localStorage whenever data changes
   useEffect(() => {
-    localStorage.setItem('familyFeudData', JSON.stringify({ 
+    localStorage.setItem('familyFeudData', JSON.stringify({
       questions: state.questions,
-      fastMoneyQuestions: state.fastMoneyQuestions
+      fastMoneyQuestions: state.fastMoneyQuestions,
+      gameSettings: state.gameSettings
     }));
-  }, [state.questions, state.fastMoneyQuestions]);
+  }, [state.questions, state.fastMoneyQuestions, state.gameSettings]);
 
   return (
     <GameContext.Provider value={{ state, dispatch }}>
