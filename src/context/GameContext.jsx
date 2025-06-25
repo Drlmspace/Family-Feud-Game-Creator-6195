@@ -100,12 +100,10 @@ const initialState = {
   gamePhase: 'playing', // 'playing', 'steal', 'round-end', 'fast-money', 'fast-money-player2', 'game-complete'
   currentTeam: 'A',
   roundScore: 0,
-  fastMoneyAnswers: {
-    player1: [],
-    player2: []
-  },
+  fastMoneyAnswers: { player1: [], player2: [] },
   fastMoneyScore: 0,
-  winningTeam: null
+  winningTeam: null,
+  roundHistory: [] // Track round winners and scores
 };
 
 // Sound utility functions
@@ -128,10 +126,7 @@ function gameReducer(state, action) {
     case 'UPDATE_GAME_SETTINGS':
       return {
         ...state,
-        gameSettings: {
-          ...state.gameSettings,
-          ...action.payload
-        }
+        gameSettings: { ...state.gameSettings, ...action.payload }
       };
 
     case 'UPDATE_SOUND_SETTINGS':
@@ -139,10 +134,7 @@ function gameReducer(state, action) {
         ...state,
         gameSettings: {
           ...state.gameSettings,
-          sounds: {
-            ...state.gameSettings.sounds,
-            ...action.payload
-          }
+          sounds: { ...state.gameSettings.sounds, ...action.payload }
         }
       };
 
@@ -159,7 +151,7 @@ function gameReducer(state, action) {
     case 'UPDATE_QUESTION':
       return {
         ...state,
-        questions: state.questions.map(q =>
+        questions: state.questions.map(q => 
           q.id === action.payload.id ? action.payload : q
         )
       };
@@ -179,7 +171,7 @@ function gameReducer(state, action) {
     case 'UPDATE_FAST_MONEY_QUESTION':
       return {
         ...state,
-        fastMoneyQuestions: state.fastMoneyQuestions.map(q =>
+        fastMoneyQuestions: state.fastMoneyQuestions.map(q => 
           q.id === action.payload.id ? action.payload : q
         )
       };
@@ -197,8 +189,10 @@ function gameReducer(state, action) {
 
       if (currentQuestion && currentQuestion.answers[answerIndex]) {
         currentQuestion.answers[answerIndex].revealed = true;
+        
         // Play correct answer sound
         playSound(state.gameSettings.sounds.correctAnswer);
+        
         return {
           ...state,
           questions: updatedQuestions,
@@ -209,6 +203,7 @@ function gameReducer(state, action) {
 
     case 'ADD_STRIKE':
       const newStrikes = state.strikes + 1;
+      
       // Play wrong answer sound
       playSound(state.gameSettings.sounds.wrongAnswer);
       
@@ -219,6 +214,7 @@ function gameReducer(state, action) {
           gamePhase: 'steal'
         };
       }
+      
       return {
         ...state,
         strikes: newStrikes
@@ -226,18 +222,31 @@ function gameReducer(state, action) {
 
     case 'AWARD_POINTS':
       const teamKey = action.payload.team === 'A' ? 'teamAScore' : 'teamBScore';
+      const newTeamScore = state[teamKey] + action.payload.points;
+      
       // Play round end sound
       playSound(state.gameSettings.sounds.roundEnd);
+      
+      // Add to round history
+      const roundWinner = {
+        round: state.currentQuestionIndex + 1,
+        team: action.payload.team,
+        points: action.payload.points,
+        question: state.questions[state.currentQuestionIndex]?.question
+      };
+      
       return {
         ...state,
-        [teamKey]: state[teamKey] + action.payload.points,
+        [teamKey]: newTeamScore,
         roundScore: 0,
         strikes: 0,
-        gamePhase: 'round-end'
+        gamePhase: 'round-end',
+        roundHistory: [...state.roundHistory, roundWinner]
       };
 
     case 'NEXT_QUESTION':
       const nextIndex = state.currentQuestionIndex + 1;
+      
       if (nextIndex < state.questions.length) {
         return {
           ...state,
@@ -257,18 +266,19 @@ function gameReducer(state, action) {
       };
 
     case 'START_FAST_MONEY':
-      // Determine winning team
-      const winningTeam = state.teamAScore > state.teamBScore ? 'A' : 'B';
+      // Determine winning team based on accumulated scores
+      const winningTeam = state.teamAScore > state.teamBScore ? 'A' : 
+                         state.teamBScore > state.teamAScore ? 'B' : 
+                         'A'; // Default to A if tied
+      
       // Play game start sound
       playSound(state.gameSettings.sounds.gameStart);
+      
       return {
         ...state,
         gamePhase: 'fast-money',
         winningTeam,
-        fastMoneyAnswers: {
-          player1: [],
-          player2: []
-        },
+        fastMoneyAnswers: { player1: [], player2: [] },
         fastMoneyScore: 0
       };
 
@@ -285,6 +295,7 @@ function gameReducer(state, action) {
 
     case 'SUBMIT_FAST_MONEY_PLAYER2':
       const totalScore = state.fastMoneyScore + action.payload.score;
+      
       return {
         ...state,
         fastMoneyAnswers: {
@@ -298,6 +309,7 @@ function gameReducer(state, action) {
     case 'RESET_GAME':
       // Play game start sound
       playSound(state.gameSettings.sounds.gameStart);
+      
       return {
         ...initialState,
         gameSettings: state.gameSettings, // Preserve settings
@@ -312,6 +324,7 @@ function gameReducer(state, action) {
           answer.revealed = false;
         });
       }
+      
       return {
         ...state,
         questions: resetQuestions,
@@ -319,6 +332,42 @@ function gameReducer(state, action) {
         gamePhase: 'playing',
         roundScore: 0,
         currentTeam: 'A'
+      };
+
+    case 'STEAL_POINTS':
+      const stealTeamKey = action.payload.team === 'A' ? 'teamAScore' : 'teamBScore';
+      const stealTeamScore = state[stealTeamKey] + state.roundScore;
+      
+      // Play round end sound
+      playSound(state.gameSettings.sounds.roundEnd);
+      
+      // Add steal to round history
+      const stealRound = {
+        round: state.currentQuestionIndex + 1,
+        team: action.payload.team,
+        points: state.roundScore,
+        question: state.questions[state.currentQuestionIndex]?.question,
+        type: 'steal'
+      };
+      
+      return {
+        ...state,
+        [stealTeamKey]: stealTeamScore,
+        roundScore: 0,
+        strikes: 0,
+        gamePhase: 'round-end',
+        roundHistory: [...state.roundHistory, stealRound]
+      };
+
+    case 'NO_STEAL':
+      // No points awarded, just end the round
+      playSound(state.gameSettings.sounds.roundEnd);
+      
+      return {
+        ...state,
+        roundScore: 0,
+        strikes: 0,
+        gamePhase: 'round-end'
       };
 
     case 'LOAD_DATA':

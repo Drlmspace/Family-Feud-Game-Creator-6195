@@ -4,7 +4,7 @@ import { useGame } from '../context/GameContext';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiX, FiEye } = FiIcons;
+const { FiX, FiEye, FiShield } = FiIcons;
 
 function GameBoard() {
   const { state, dispatch } = useGame();
@@ -41,6 +41,26 @@ function GameBoard() {
       <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 text-center">
         <h2 className="text-2xl font-bold text-white">Game Complete!</h2>
         <p className="text-white/70 mt-2">All questions have been played.</p>
+        <div className="mt-6 p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl border border-yellow-400/30">
+          <div className="text-yellow-400 font-bold text-lg mb-2">Final Scores</div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center">
+              <div className="text-blue-400 font-semibold">Team A</div>
+              <div className="text-2xl font-bold text-white">{state.teamAScore}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-red-400 font-semibold">Team B</div>
+              <div className="text-2xl font-bold text-white">{state.teamBScore}</div>
+            </div>
+          </div>
+          <div className="mt-4 text-center">
+            <div className="text-yellow-400 font-bold">
+              {state.teamAScore > state.teamBScore ? 'Team A Wins!' :
+               state.teamBScore > state.teamAScore ? 'Team B Wins!' :
+               'It\'s a Tie!'}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -101,7 +121,6 @@ function GameBoard() {
                   )}
                 </AnimatePresence>
               </div>
-              
               <AnimatePresence>
                 {answer.revealed && (
                   <motion.div
@@ -119,7 +138,7 @@ function GameBoard() {
       </div>
 
       {/* Strikes */}
-      <div className="flex items-center justify-center space-x-4">
+      <div className="flex items-center justify-center space-x-4 mb-6">
         <span className="text-white font-bold text-xl mr-4">STRIKES:</span>
         {renderStrikes()}
       </div>
@@ -129,7 +148,7 @@ function GameBoard() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mt-6"
+          className="text-center mb-6"
         >
           <div className="bg-green-500 text-white px-6 py-3 rounded-lg inline-block">
             <span className="font-bold text-xl">Round Score: {state.roundScore}</span>
@@ -142,10 +161,32 @@ function GameBoard() {
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center mt-6"
+          className="text-center"
         >
           <div className="bg-red-500 text-white px-8 py-4 rounded-lg inline-block">
-            <span className="font-bold text-2xl">STEAL OPPORTUNITY!</span>
+            <div className="flex items-center space-x-2">
+              <SafeIcon icon={FiShield} className="text-2xl" />
+              <span className="font-bold text-2xl">STEAL OPPORTUNITY!</span>
+            </div>
+            <div className="text-sm mt-1">
+              {state.roundScore} points available to steal
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Round End Phase */}
+      {state.gamePhase === 'round-end' && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <div className="bg-green-500 text-white px-8 py-4 rounded-lg inline-block">
+            <span className="font-bold text-2xl">ROUND COMPLETE!</span>
+            <div className="text-sm mt-1">
+              Points have been awarded
+            </div>
           </div>
         </motion.div>
       )}

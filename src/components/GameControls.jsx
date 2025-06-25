@@ -4,7 +4,7 @@ import { useGame } from '../context/GameContext';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiX, FiSkipForward, FiRotateCcw, FiRefreshCw, FiShuffle, FiAward, FiZap } = FiIcons;
+const { FiX, FiSkipForward, FiRotateCcw, FiRefreshCw, FiShuffle, FiAward, FiZap, FiShield } = FiIcons;
 
 function GameControls() {
   const { state, dispatch } = useGame();
@@ -15,6 +15,14 @@ function GameControls() {
 
   const handleAwardPoints = (team) => {
     dispatch({ type: 'AWARD_POINTS', payload: { team, points: state.roundScore } });
+  };
+
+  const handleStealPoints = (team) => {
+    dispatch({ type: 'STEAL_POINTS', payload: { team } });
+  };
+
+  const handleNoSteal = () => {
+    dispatch({ type: 'NO_STEAL' });
   };
 
   const handleNextQuestion = () => {
@@ -42,13 +50,17 @@ function GameControls() {
       alert('You need at least 5 Fast Money questions to play the final round. Please add more in the Admin Panel.');
       return;
     }
-    if (window.confirm('Start Fast Money round? The winning team will play for the grand prize!')) {
+    
+    const winner = state.teamAScore > state.teamBScore ? 'Team A' : 
+                   state.teamBScore > state.teamAScore ? 'Team B' : 'It\'s a tie';
+    
+    if (window.confirm(`Current Scores:\nTeam A: ${state.teamAScore}\nTeam B: ${state.teamBScore}\n\nWinner: ${winner}\n\nStart Fast Money round?`)) {
       dispatch({ type: 'START_FAST_MONEY' });
     }
   };
 
   const isGameComplete = state.currentQuestionIndex >= state.questions.length;
-  const canStartFastMoney = isGameComplete && (state.teamAScore !== state.teamBScore);
+  const canStartFastMoney = isGameComplete;
 
   return (
     <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
@@ -69,30 +81,71 @@ function GameControls() {
               <span>Add Strike ({state.strikes}/3)</span>
             </motion.button>
 
-            {/* Award Points */}
-            <div className="grid grid-cols-2 gap-2">
-              <motion.button
-                onClick={() => handleAwardPoints('A')}
-                disabled={state.roundScore === 0}
-                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors"
-                whileHover={{ scale: state.roundScore === 0 ? 1 : 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <SafeIcon icon={FiAward} />
-                <span>Team A</span>
-              </motion.button>
-              
-              <motion.button
-                onClick={() => handleAwardPoints('B')}
-                disabled={state.roundScore === 0}
-                className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors"
-                whileHover={{ scale: state.roundScore === 0 ? 1 : 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <SafeIcon icon={FiAward} />
-                <span>Team B</span>
-              </motion.button>
-            </div>
+            {/* Award Points or Steal Phase */}
+            {state.gamePhase === 'steal' ? (
+              <div className="space-y-2">
+                <div className="bg-red-500/20 border border-red-400 rounded-lg p-3 text-center">
+                  <div className="text-red-400 font-bold mb-2">STEAL OPPORTUNITY!</div>
+                  <div className="text-white text-sm">
+                    {state.roundScore} points available to steal
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <motion.button
+                    onClick={() => handleStealPoints('A')}
+                    disabled={state.roundScore === 0}
+                    className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+                    whileHover={{ scale: state.roundScore === 0 ? 1 : 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <SafeIcon icon={FiShield} />
+                    <span>Team A Steals</span>
+                  </motion.button>
+                  <motion.button
+                    onClick={() => handleStealPoints('B')}
+                    disabled={state.roundScore === 0}
+                    className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+                    whileHover={{ scale: state.roundScore === 0 ? 1 : 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <SafeIcon icon={FiShield} />
+                    <span>Team B Steals</span>
+                  </motion.button>
+                </div>
+                <motion.button
+                  onClick={handleNoSteal}
+                  className="w-full bg-gray-500 hover:bg-gray-600 text-white p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <SafeIcon icon={FiX} />
+                  <span>No Steal - End Round</span>
+                </motion.button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <motion.button
+                  onClick={() => handleAwardPoints('A')}
+                  disabled={state.roundScore === 0}
+                  className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+                  whileHover={{ scale: state.roundScore === 0 ? 1 : 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <SafeIcon icon={FiAward} />
+                  <span>Team A ({state.roundScore})</span>
+                </motion.button>
+                <motion.button
+                  onClick={() => handleAwardPoints('B')}
+                  disabled={state.roundScore === 0}
+                  className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+                  whileHover={{ scale: state.roundScore === 0 ? 1 : 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <SafeIcon icon={FiAward} />
+                  <span>Team B ({state.roundScore})</span>
+                </motion.button>
+              </div>
+            )}
 
             {/* Switch Team */}
             <motion.button
@@ -134,13 +187,6 @@ function GameControls() {
           </motion.button>
         )}
 
-        {isGameComplete && !canStartFastMoney && (
-          <div className="bg-yellow-500/20 border border-yellow-400 rounded-lg p-4 text-center">
-            <div className="text-yellow-400 font-bold mb-2">Game Tied!</div>
-            <div className="text-white text-sm">Play more rounds or start Fast Money anyway</div>
-          </div>
-        )}
-
         {/* Reset Controls */}
         <motion.button
           onClick={handleResetRound}
@@ -168,17 +214,35 @@ function GameControls() {
         <div className="text-center">
           <div className="text-white/70 text-sm">Game Status</div>
           <div className="text-white font-bold">
-            {state.gamePhase === 'steal' 
-              ? 'STEAL OPPORTUNITY' 
-              : state.gamePhase === 'round-end' 
-                ? 'ROUND COMPLETE' 
-                : isGameComplete 
-                  ? 'READY FOR FAST MONEY' 
-                  : 'PLAYING'
-            }
+            {state.gamePhase === 'steal' ? 'STEAL OPPORTUNITY' :
+             state.gamePhase === 'round-end' ? 'ROUND COMPLETE' :
+             isGameComplete ? 'READY FOR FAST MONEY' : 'PLAYING'}
           </div>
+          {state.roundScore > 0 && (
+            <div className="text-yellow-400 font-bold mt-1">
+              {state.roundScore} points in play
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Round History */}
+      {state.roundHistory.length > 0 && (
+        <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10">
+          <div className="text-white/70 text-sm mb-2">Round Winners</div>
+          <div className="space-y-1">
+            {state.roundHistory.slice(-3).map((round, index) => (
+              <div key={index} className="flex justify-between items-center text-xs">
+                <span className="text-white/60">Round {round.round}</span>
+                <span className={`font-bold ${round.team === 'A' ? 'text-blue-400' : 'text-red-400'}`}>
+                  Team {round.team} +{round.points}
+                  {round.type === 'steal' && ' (STEAL)'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
