@@ -4,7 +4,7 @@ import { useGame } from '../context/GameContext';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiX, FiSkipForward, FiRotateCcw, FiRefreshCw, FiShuffle, FiAward, FiZap, FiShield } = FiIcons;
+const { FiX, FiSkipForward, FiRotateCcw, FiRefreshCw, FiShuffle, FiAward, FiZap, FiShield, FiVolume2, FiPlay } = FiIcons;
 
 function GameControls() {
   const { state, dispatch } = useGame();
@@ -50,13 +50,18 @@ function GameControls() {
       alert('You need at least 5 Fast Money questions to play the final round. Please add more in the Admin Panel.');
       return;
     }
-    
-    const winner = state.teamAScore > state.teamBScore ? 'Team A' : 
-                   state.teamBScore > state.teamAScore ? 'Team B' : 'It\'s a tie';
-    
+
+    const winner = state.teamAScore > state.teamBScore ? 'Team A' :
+                  state.teamBScore > state.teamAScore ? 'Team B' :
+                  'It\'s a tie';
+
     if (window.confirm(`Current Scores:\nTeam A: ${state.teamAScore}\nTeam B: ${state.teamBScore}\n\nWinner: ${winner}\n\nStart Fast Money round?`)) {
       dispatch({ type: 'START_FAST_MONEY' });
     }
+  };
+
+  const handlePlaySound = (soundType) => {
+    dispatch({ type: 'PLAY_SOUND', payload: soundType });
   };
 
   const isGameComplete = state.currentQuestionIndex >= state.questions.length;
@@ -67,6 +72,34 @@ function GameControls() {
       <h3 className="text-xl font-bold text-white mb-6">Game Controls</h3>
       
       <div className="space-y-3">
+        {/* Sound Controls */}
+        <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-4">
+          <div className="flex items-center space-x-2 mb-3">
+            <SafeIcon icon={FiVolume2} className="text-yellow-400" />
+            <h4 className="text-white font-semibold">Sound Effects</h4>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <motion.button
+              onClick={() => handlePlaySound('gameStart')}
+              className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg flex items-center justify-center space-x-2 transition-colors text-sm"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <SafeIcon icon={FiPlay} />
+              <span>Game Start</span>
+            </motion.button>
+            <motion.button
+              onClick={() => handlePlaySound('roundEnd')}
+              className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg flex items-center justify-center space-x-2 transition-colors text-sm"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <SafeIcon icon={FiPlay} />
+              <span>Round End</span>
+            </motion.button>
+          </div>
+        </div>
+
         {!isGameComplete && (
           <>
             {/* Add Strike */}

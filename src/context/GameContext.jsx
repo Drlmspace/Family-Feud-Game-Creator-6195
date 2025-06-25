@@ -7,9 +7,9 @@ const initialState = {
     title: 'Family Feud',
     sounds: {
       wrongAnswer: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
-      gameStart: 'https://www.soundjay.com/misc/sounds/tada-fanfare-a.wav',
+      gameStart: 'https://app1.sharemyimage.com/2025/06/26/Selong.mp4',
       correctAnswer: 'https://www.soundjay.com/misc/sounds/beep-07a.wav',
-      roundEnd: 'https://www.soundjay.com/misc/sounds/beep-10.wav'
+      roundEnd: 'https://app1.sharemyimage.com/2025/06/26/SEopeningshort.mp4'
     }
   },
   questions: [
@@ -100,7 +100,10 @@ const initialState = {
   gamePhase: 'playing', // 'playing', 'steal', 'round-end', 'fast-money', 'fast-money-player2', 'game-complete'
   currentTeam: 'A',
   roundScore: 0,
-  fastMoneyAnswers: { player1: [], player2: [] },
+  fastMoneyAnswers: {
+    player1: [],
+    player2: []
+  },
   fastMoneyScore: 0,
   winningTeam: null,
   roundHistory: [] // Track round winners and scores
@@ -110,11 +113,25 @@ const initialState = {
 const playSound = (url) => {
   if (url && url.trim()) {
     try {
-      const audio = new Audio(url);
-      audio.volume = 0.5; // Set volume to 50%
-      audio.play().catch(error => {
-        console.warn('Could not play sound:', error);
-      });
+      // Check if it's a video file (mp4, webm, etc.)
+      const isVideo = /\.(mp4|webm|ogg|avi|mov)$/i.test(url);
+      
+      if (isVideo) {
+        // Create a video element for video files
+        const video = document.createElement('video');
+        video.src = url;
+        video.volume = 0.5; // Set volume to 50%
+        video.play().catch(error => {
+          console.warn('Could not play video sound:', error);
+        });
+      } else {
+        // Use audio element for audio files
+        const audio = new Audio(url);
+        audio.volume = 0.5; // Set volume to 50%
+        audio.play().catch(error => {
+          console.warn('Could not play sound:', error);
+        });
+      }
     } catch (error) {
       console.warn('Invalid sound URL:', error);
     }
@@ -137,7 +154,10 @@ function gameReducer(state, action) {
     case 'UPDATE_GAME_SETTINGS':
       return {
         ...state,
-        gameSettings: { ...state.gameSettings, ...action.payload }
+        gameSettings: {
+          ...state.gameSettings,
+          ...action.payload
+        }
       };
 
     case 'UPDATE_SOUND_SETTINGS':
@@ -145,7 +165,10 @@ function gameReducer(state, action) {
         ...state,
         gameSettings: {
           ...state.gameSettings,
-          sounds: { ...state.gameSettings.sounds, ...action.payload }
+          sounds: {
+            ...state.gameSettings.sounds,
+            ...action.payload
+          }
         }
       };
 
@@ -203,7 +226,7 @@ function gameReducer(state, action) {
         
         // Play correct answer sound
         playSound(state.gameSettings.sounds.correctAnswer);
-        
+
         return {
           ...state,
           questions: updatedQuestions,
@@ -217,7 +240,7 @@ function gameReducer(state, action) {
       
       // Play wrong answer sound
       playSound(state.gameSettings.sounds.wrongAnswer);
-      
+
       if (newStrikes >= 3) {
         return {
           ...state,
@@ -225,7 +248,6 @@ function gameReducer(state, action) {
           gamePhase: 'steal'
         };
       }
-      
       return {
         ...state,
         strikes: newStrikes
@@ -237,7 +259,7 @@ function gameReducer(state, action) {
       
       // Play round end sound
       playSound(state.gameSettings.sounds.roundEnd);
-      
+
       // Add to round history
       const roundWinner = {
         round: state.currentQuestionIndex + 1,
@@ -245,7 +267,7 @@ function gameReducer(state, action) {
         points: action.payload.points,
         question: state.questions[state.currentQuestionIndex]?.question
       };
-      
+
       return {
         ...state,
         [teamKey]: newTeamScore,
@@ -257,7 +279,6 @@ function gameReducer(state, action) {
 
     case 'NEXT_QUESTION':
       const nextIndex = state.currentQuestionIndex + 1;
-      
       if (nextIndex < state.questions.length) {
         return {
           ...state,
@@ -279,17 +300,19 @@ function gameReducer(state, action) {
     case 'START_FAST_MONEY':
       // Determine winning team based on accumulated scores
       const winningTeam = state.teamAScore > state.teamBScore ? 'A' : 
-                         state.teamBScore > state.teamAScore ? 'B' : 
-                         'A'; // Default to A if tied
+                         state.teamBScore > state.teamAScore ? 'B' : 'A'; // Default to A if tied
       
       // Play game start sound
       playSound(state.gameSettings.sounds.gameStart);
-      
+
       return {
         ...state,
         gamePhase: 'fast-money',
         winningTeam,
-        fastMoneyAnswers: { player1: [], player2: [] },
+        fastMoneyAnswers: {
+          player1: [],
+          player2: []
+        },
         fastMoneyScore: 0
       };
 
@@ -306,7 +329,6 @@ function gameReducer(state, action) {
 
     case 'SUBMIT_FAST_MONEY_PLAYER2':
       const totalScore = state.fastMoneyScore + action.payload.score;
-      
       return {
         ...state,
         fastMoneyAnswers: {
@@ -320,10 +342,10 @@ function gameReducer(state, action) {
     case 'RESET_GAME':
       // Play game start sound
       playSound(state.gameSettings.sounds.gameStart);
-      
+
       // Reset all answers to be covered up
       const resetQuestions = resetAllAnswers(state.questions);
-      
+
       return {
         ...initialState,
         gameSettings: state.gameSettings, // Preserve settings
@@ -339,7 +361,7 @@ function gameReducer(state, action) {
           answer.revealed = false;
         });
       }
-      
+
       return {
         ...state,
         questions: resetRoundQuestions,
@@ -355,7 +377,7 @@ function gameReducer(state, action) {
       
       // Play round end sound
       playSound(state.gameSettings.sounds.roundEnd);
-      
+
       // Add steal to round history
       const stealRound = {
         round: state.currentQuestionIndex + 1,
@@ -364,7 +386,7 @@ function gameReducer(state, action) {
         question: state.questions[state.currentQuestionIndex]?.question,
         type: 'steal'
       };
-      
+
       return {
         ...state,
         [stealTeamKey]: stealTeamScore,
@@ -389,7 +411,7 @@ function gameReducer(state, action) {
       // When loading data, ensure all answers start covered
       const loadedQuestions = action.payload.questions ? 
         resetAllAnswers(action.payload.questions) : state.questions;
-      
+
       return {
         ...state,
         ...action.payload,
