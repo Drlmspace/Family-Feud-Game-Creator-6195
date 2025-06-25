@@ -1,0 +1,181 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import { useGame } from '../context/GameContext';
+import SafeIcon from '../common/SafeIcon';
+import * as FiIcons from 'react-icons/fi';
+
+const { FiX, FiSkipForward, FiRotateCcw, FiRefreshCw, FiShuffle, FiAward, FiZap } = FiIcons;
+
+function GameControls() {
+  const { state, dispatch } = useGame();
+
+  const handleAddStrike = () => {
+    dispatch({ type: 'ADD_STRIKE' });
+  };
+
+  const handleAwardPoints = (team) => {
+    dispatch({ type: 'AWARD_POINTS', payload: { team, points: state.roundScore } });
+  };
+
+  const handleNextQuestion = () => {
+    dispatch({ type: 'NEXT_QUESTION' });
+  };
+
+  const handleSwitchTeam = () => {
+    dispatch({ type: 'SWITCH_TEAM' });
+  };
+
+  const handleResetRound = () => {
+    if (window.confirm('Reset current round? This will clear all revealed answers and strikes.')) {
+      dispatch({ type: 'RESET_ROUND' });
+    }
+  };
+
+  const handleResetGame = () => {
+    if (window.confirm('Reset entire game? This will clear all scores and return to the first question.')) {
+      dispatch({ type: 'RESET_GAME' });
+    }
+  };
+
+  const handleStartFastMoney = () => {
+    if (state.fastMoneyQuestions.length < 5) {
+      alert('You need at least 5 Fast Money questions to play the final round. Please add more in the Admin Panel.');
+      return;
+    }
+    if (window.confirm('Start Fast Money round? The winning team will play for the grand prize!')) {
+      dispatch({ type: 'START_FAST_MONEY' });
+    }
+  };
+
+  const isGameComplete = state.currentQuestionIndex >= state.questions.length;
+  const canStartFastMoney = isGameComplete && (state.teamAScore !== state.teamBScore);
+
+  return (
+    <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+      <h3 className="text-xl font-bold text-white mb-6">Game Controls</h3>
+
+      <div className="space-y-3">
+        {!isGameComplete && (
+          <>
+            {/* Add Strike */}
+            <motion.button
+              onClick={handleAddStrike}
+              disabled={state.strikes >= 3}
+              className="w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+              whileHover={{ scale: state.strikes >= 3 ? 1 : 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <SafeIcon icon={FiX} />
+              <span>Add Strike ({state.strikes}/3)</span>
+            </motion.button>
+
+            {/* Award Points */}
+            <div className="grid grid-cols-2 gap-2">
+              <motion.button
+                onClick={() => handleAwardPoints('A')}
+                disabled={state.roundScore === 0}
+                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+                whileHover={{ scale: state.roundScore === 0 ? 1 : 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <SafeIcon icon={FiAward} />
+                <span>Team A</span>
+              </motion.button>
+              
+              <motion.button
+                onClick={() => handleAwardPoints('B')}
+                disabled={state.roundScore === 0}
+                className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+                whileHover={{ scale: state.roundScore === 0 ? 1 : 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <SafeIcon icon={FiAward} />
+                <span>Team B</span>
+              </motion.button>
+            </div>
+
+            {/* Switch Team */}
+            <motion.button
+              onClick={handleSwitchTeam}
+              className="w-full bg-purple-500 hover:bg-purple-600 text-white p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <SafeIcon icon={FiShuffle} />
+              <span>Switch to Team {state.currentTeam === 'A' ? 'B' : 'A'}</span>
+            </motion.button>
+
+            {/* Next Question */}
+            <motion.button
+              onClick={handleNextQuestion}
+              disabled={state.currentQuestionIndex >= state.questions.length - 1}
+              className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+              whileHover={{ scale: state.currentQuestionIndex >= state.questions.length - 1 ? 1 : 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <SafeIcon icon={FiSkipForward} />
+              <span>Next Question</span>
+            </motion.button>
+
+            <hr className="border-white/20 my-4" />
+          </>
+        )}
+
+        {/* Fast Money Round */}
+        {canStartFastMoney && (
+          <motion.button
+            onClick={handleStartFastMoney}
+            className="w-full bg-yellow-500 hover:bg-yellow-600 text-black p-4 rounded-lg flex items-center justify-center space-x-2 transition-colors font-bold text-lg"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <SafeIcon icon={FiZap} />
+            <span>Start Fast Money!</span>
+          </motion.button>
+        )}
+
+        {isGameComplete && !canStartFastMoney && (
+          <div className="bg-yellow-500/20 border border-yellow-400 rounded-lg p-4 text-center">
+            <div className="text-yellow-400 font-bold mb-2">Game Tied!</div>
+            <div className="text-white text-sm">Play more rounds or start Fast Money anyway</div>
+          </div>
+        )}
+
+        {/* Reset Controls */}
+        <motion.button
+          onClick={handleResetRound}
+          className="w-full bg-yellow-600 hover:bg-yellow-700 text-white p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <SafeIcon icon={FiRotateCcw} />
+          <span>Reset Round</span>
+        </motion.button>
+
+        <motion.button
+          onClick={handleResetGame}
+          className="w-full bg-gray-600 hover:bg-gray-700 text-white p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <SafeIcon icon={FiRefreshCw} />
+          <span>Reset Game</span>
+        </motion.button>
+      </div>
+
+      {/* Game Status */}
+      <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10">
+        <div className="text-center">
+          <div className="text-white/70 text-sm">Game Status</div>
+          <div className="text-white font-bold">
+            {state.gamePhase === 'steal' ? 'STEAL OPPORTUNITY' : 
+             state.gamePhase === 'round-end' ? 'ROUND COMPLETE' : 
+             isGameComplete ? 'READY FOR FAST MONEY' : 'PLAYING'}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default GameControls;
