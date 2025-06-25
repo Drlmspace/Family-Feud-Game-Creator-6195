@@ -22,12 +22,11 @@ function AdminLogin({ onLogin }) {
     // Simulate a brief loading delay for better UX
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    if (credentials.username === 'DrLMspace' && credentials.password === 'Saratoga1970!?@') {
+    if (credentials.username === 'GameShowHost' && credentials.password === 'Strike3Times') {
       onLogin();
     } else {
       setError('Invalid username or password');
     }
-    
     setIsLoading(false);
   };
 
@@ -63,10 +62,7 @@ function AdminLogin({ onLogin }) {
           <div>
             <label className="block text-white font-medium mb-2">Username</label>
             <div className="relative">
-              <SafeIcon 
-                icon={FiUser} 
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50" 
-              />
+              <SafeIcon icon={FiUser} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50" />
               <input
                 type="text"
                 value={credentials.username}
@@ -82,10 +78,7 @@ function AdminLogin({ onLogin }) {
           <div>
             <label className="block text-white font-medium mb-2">Password</label>
             <div className="relative">
-              <SafeIcon 
-                icon={FiLock} 
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50" 
-              />
+              <SafeIcon icon={FiLock} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={credentials.password}
