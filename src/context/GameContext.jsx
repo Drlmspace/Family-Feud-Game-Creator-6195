@@ -106,36 +106,90 @@ const initialState = {
   },
   fastMoneyScore: 0,
   winningTeam: null,
-  roundHistory: [] // Track round winners and scores
+  roundHistory: [], // Track round winners and scores
+  activeSounds: {
+    gameStart: null,
+    roundEnd: null
+  }
+};
+
+// Global sound management
+const activeSoundElements = {
+  gameStart: null,
+  roundEnd: null
 };
 
 // Sound utility functions
-const playSound = (url) => {
+const playSound = (url, soundType) => {
   if (url && url.trim()) {
     try {
+      // Stop any existing sound of this type
+      if (activeSoundElements[soundType]) {
+        activeSoundElements[soundType].pause();
+        activeSoundElements[soundType].currentTime = 0;
+        activeSoundElements[soundType] = null;
+      }
+
       // Check if it's a video file (mp4, webm, etc.)
       const isVideo = /\.(mp4|webm|ogg|avi|mov)$/i.test(url);
       
+      let element;
       if (isVideo) {
         // Create a video element for video files
-        const video = document.createElement('video');
-        video.src = url;
-        video.volume = 0.5; // Set volume to 50%
-        video.play().catch(error => {
-          console.warn('Could not play video sound:', error);
-        });
+        element = document.createElement('video');
       } else {
         // Use audio element for audio files
-        const audio = new Audio(url);
-        audio.volume = 0.5; // Set volume to 50%
-        audio.play().catch(error => {
-          console.warn('Could not play sound:', error);
-        });
+        element = new Audio();
       }
+
+      element.src = url;
+      element.volume = 0.5; // Set volume to 50%
+      
+      // Store reference for control
+      activeSoundElements[soundType] = element;
+
+      element.play().catch(error => {
+        console.warn('Could not play sound:', error);
+      });
+
+      // Clean up reference when sound ends
+      element.addEventListener('ended', () => {
+        if (activeSoundElements[soundType] === element) {
+          activeSoundElements[soundType] = null;
+        }
+      });
+
     } catch (error) {
       console.warn('Invalid sound URL:', error);
     }
   }
+};
+
+const pauseSound = (soundType) => {
+  if (activeSoundElements[soundType]) {
+    activeSoundElements[soundType].pause();
+  }
+};
+
+const stopSound = (soundType) => {
+  if (activeSoundElements[soundType]) {
+    activeSoundElements[soundType].pause();
+    activeSoundElements[soundType].currentTime = 0;
+    activeSoundElements[soundType] = null;
+  }
+};
+
+const resumeSound = (soundType) => {
+  if (activeSoundElements[soundType]) {
+    activeSoundElements[soundType].play().catch(error => {
+      console.warn('Could not resume sound:', error);
+    });
+  }
+};
+
+const getSoundStatus = (soundType) => {
+  if (!activeSoundElements[soundType]) return 'stopped';
+  return activeSoundElements[soundType].paused ? 'paused' : 'playing';
 };
 
 // Helper function to reset all answers in all questions
@@ -173,8 +227,55 @@ function gameReducer(state, action) {
       };
 
     case 'PLAY_SOUND':
-      playSound(state.gameSettings.sounds[action.payload]);
-      return state;
+      const soundType = action.payload;
+      const soundUrl = state.gameSettings.sounds[soundType];
+      playSound(soundUrl, soundType);
+      return {
+        ...state,
+        activeSounds: {
+          ...state.activeSounds,
+          [soundType]: 'playing'
+        }
+      };
+
+    case 'PAUSE_SOUND':
+      pauseSound(action.payload);
+      return {
+        ...state,
+        activeSounds: {
+          ...state.activeSounds,
+          [action.payload]: 'paused'
+        }
+      };
+
+    case 'STOP_SOUND':
+      stopSound(action.payload);
+      return {
+        ...state,
+        activeSounds: {
+          ...state.activeSounds,
+          [action.payload]: 'stopped'
+        }
+      };
+
+    case 'RESUME_SOUND':
+      resumeSound(action.payload);
+      return {
+        ...state,
+        activeSounds: {
+          ...state.activeSounds,
+          [action.payload]: 'playing'
+        }
+      };
+
+    case 'UPDATE_SOUND_STATUS':
+      return {
+        ...state,
+        activeSounds: {
+          ...state.activeSounds,
+          [action.payload.soundType]: action.payload.status
+        }
+      };
 
     case 'ADD_QUESTION':
       return {
@@ -225,7 +326,7 @@ function gameReducer(state, action) {
         currentQuestion.answers[answerIndex].revealed = true;
         
         // Play correct answer sound
-        playSound(state.gameSettings.sounds.correctAnswer);
+        playSound(state.gameSettings.sounds.correctAnswer, 'correctAnswer');
 
         return {
           ...state,
@@ -239,7 +340,7 @@ function gameReducer(state, action) {
       const newStrikes = state.strikes + 1;
       
       // Play wrong answer sound
-      playSound(state.gameSettings.sounds.wrongAnswer);
+      playSound(state.gameSettings.sounds.wrongAnswer, 'wrongAnswer');
 
       if (newStrikes >= 3) {
         return {
@@ -258,7 +359,7 @@ function gameReducer(state, action) {
       const newTeamScore = state[teamKey] + action.payload.points;
       
       // Play round end sound
-      playSound(state.gameSettings.sounds.roundEnd);
+      playSound(state.gameSettings.sounds.roundEnd, 'roundEnd');
 
       // Add to round history
       const roundWinner = {
@@ -303,7 +404,7 @@ function gameReducer(state, action) {
                          state.teamBScore > state.teamAScore ? 'B' : 'A'; // Default to A if tied
       
       // Play game start sound
-      playSound(state.gameSettings.sounds.gameStart);
+      playSound(state.gameSettings.sounds.gameStart, 'gameStart');
 
       return {
         ...state,
@@ -340,8 +441,13 @@ function gameReducer(state, action) {
       };
 
     case 'RESET_GAME':
+      // Stop all sounds
+      Object.keys(activeSoundElements).forEach(soundType => {
+        stopSound(soundType);
+      });
+
       // Play game start sound
-      playSound(state.gameSettings.sounds.gameStart);
+      playSound(state.gameSettings.sounds.gameStart, 'gameStart');
 
       // Reset all answers to be covered up
       const resetQuestions = resetAllAnswers(state.questions);
@@ -376,7 +482,7 @@ function gameReducer(state, action) {
       const stealTeamScore = state[stealTeamKey] + state.roundScore;
       
       // Play round end sound
-      playSound(state.gameSettings.sounds.roundEnd);
+      playSound(state.gameSettings.sounds.roundEnd, 'roundEnd');
 
       // Add steal to round history
       const stealRound = {
@@ -398,7 +504,7 @@ function gameReducer(state, action) {
 
     case 'NO_STEAL':
       // No points awarded, just end the round
-      playSound(state.gameSettings.sounds.roundEnd);
+      playSound(state.gameSettings.sounds.roundEnd, 'roundEnd');
       
       return {
         ...state,
@@ -450,8 +556,13 @@ export function GameProvider({ children }) {
     }));
   }, [state.questions, state.fastMoneyQuestions, state.gameSettings]);
 
+  // Sound status checking utility
+  const getSoundStatusUtil = (soundType) => {
+    return getSoundStatus(soundType);
+  };
+
   return (
-    <GameContext.Provider value={{ state, dispatch }}>
+    <GameContext.Provider value={{ state, dispatch, getSoundStatus: getSoundStatusUtil }}>
       {children}
     </GameContext.Provider>
   );
