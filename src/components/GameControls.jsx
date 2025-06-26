@@ -4,10 +4,10 @@ import { useGame } from '../context/GameContext';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiX, FiSkipForward, FiRotateCcw, FiRefreshCw, FiShuffle, FiAward, FiZap, FiShield, FiVolume2, FiPlay, FiPause, FiSquare } = FiIcons;
+const { FiX, FiSkipForward, FiRotateCcw, FiRefreshCw, FiShuffle, FiAward, FiZap, FiShield } = FiIcons;
 
 function GameControls() {
-  const { state, dispatch, getSoundStatus } = useGame();
+  const { state, dispatch } = useGame();
 
   const handleAddStrike = () => {
     dispatch({ type: 'ADD_STRIKE' });
@@ -59,64 +59,6 @@ function GameControls() {
     }
   };
 
-  const handlePlaySound = (soundType) => {
-    dispatch({ type: 'PLAY_SOUND', payload: soundType });
-  };
-
-  const handlePauseSound = (soundType) => {
-    dispatch({ type: 'PAUSE_SOUND', payload: soundType });
-  };
-
-  const handleStopSound = (soundType) => {
-    dispatch({ type: 'STOP_SOUND', payload: soundType });
-  };
-
-  const handleResumeSound = (soundType) => {
-    dispatch({ type: 'RESUME_SOUND', payload: soundType });
-  };
-
-  const getSoundButtonColor = (soundType) => {
-    const status = getSoundStatus(soundType);
-    switch (status) {
-      case 'playing': return 'bg-green-500 hover:bg-green-600';
-      case 'paused': return 'bg-yellow-500 hover:bg-yellow-600';
-      default: return 'bg-blue-500 hover:bg-blue-600';
-    }
-  };
-
-  const getSoundButtonIcon = (soundType) => {
-    const status = getSoundStatus(soundType);
-    switch (status) {
-      case 'playing': return FiPause;
-      case 'paused': return FiPlay;
-      default: return FiPlay;
-    }
-  };
-
-  const getSoundButtonText = (soundType) => {
-    const status = getSoundStatus(soundType);
-    switch (status) {
-      case 'playing': return 'Pause';
-      case 'paused': return 'Resume';
-      default: return 'Play';
-    }
-  };
-
-  const handleSoundButtonClick = (soundType) => {
-    const status = getSoundStatus(soundType);
-    switch (status) {
-      case 'playing':
-        handlePauseSound(soundType);
-        break;
-      case 'paused':
-        handleResumeSound(soundType);
-        break;
-      default:
-        handlePlaySound(soundType);
-        break;
-    }
-  };
-
   const isGameComplete = state.currentQuestionIndex >= state.questions.length;
   const canStartFastMoney = isGameComplete;
 
@@ -125,85 +67,6 @@ function GameControls() {
       <h3 className="text-xl font-bold text-white mb-6">Game Controls</h3>
       
       <div className="space-y-3">
-        {/* Sound Controls */}
-        <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-4">
-          <div className="flex items-center space-x-2 mb-3">
-            <SafeIcon icon={FiVolume2} className="text-yellow-400" />
-            <h4 className="text-white font-semibold">Sound Effects</h4>
-          </div>
-          
-          {/* Game Start Sound Controls */}
-          <div className="mb-4">
-            <div className="text-white/80 text-sm mb-2">Game Start Sound</div>
-            <div className="flex space-x-2">
-              <motion.button
-                onClick={() => handleSoundButtonClick('gameStart')}
-                className={`${getSoundButtonColor('gameStart')} text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors text-sm flex-1`}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <SafeIcon icon={getSoundButtonIcon('gameStart')} />
-                <span>{getSoundButtonText('gameStart')} Start</span>
-              </motion.button>
-              
-              <motion.button
-                onClick={() => handleStopSound('gameStart')}
-                disabled={getSoundStatus('gameStart') === 'stopped'}
-                className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors text-sm"
-                whileHover={{ scale: getSoundStatus('gameStart') === 'stopped' ? 1 : 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <SafeIcon icon={FiSquare} />
-                <span>Stop</span>
-              </motion.button>
-            </div>
-          </div>
-
-          {/* Round End Sound Controls */}
-          <div>
-            <div className="text-white/80 text-sm mb-2">Round End Sound</div>
-            <div className="flex space-x-2">
-              <motion.button
-                onClick={() => handleSoundButtonClick('roundEnd')}
-                className={`${getSoundButtonColor('roundEnd')} text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors text-sm flex-1`}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <SafeIcon icon={getSoundButtonIcon('roundEnd')} />
-                <span>{getSoundButtonText('roundEnd')} End</span>
-              </motion.button>
-              
-              <motion.button
-                onClick={() => handleStopSound('roundEnd')}
-                disabled={getSoundStatus('roundEnd') === 'stopped'}
-                className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors text-sm"
-                whileHover={{ scale: getSoundStatus('roundEnd') === 'stopped' ? 1 : 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <SafeIcon icon={FiSquare} />
-                <span>Stop</span>
-              </motion.button>
-            </div>
-          </div>
-
-          {/* Sound Status Indicators */}
-          <div className="mt-3 p-2 bg-white/5 rounded-lg">
-            <div className="text-xs text-white/60 mb-1">Sound Status:</div>
-            <div className="flex justify-between text-xs">
-              <span className="text-white/80">
-                Game Start: <span className={`font-bold ${getSoundStatus('gameStart') === 'playing' ? 'text-green-400' : getSoundStatus('gameStart') === 'paused' ? 'text-yellow-400' : 'text-gray-400'}`}>
-                  {getSoundStatus('gameStart').toUpperCase()}
-                </span>
-              </span>
-              <span className="text-white/80">
-                Round End: <span className={`font-bold ${getSoundStatus('roundEnd') === 'playing' ? 'text-green-400' : getSoundStatus('roundEnd') === 'paused' ? 'text-yellow-400' : 'text-gray-400'}`}>
-                  {getSoundStatus('roundEnd').toUpperCase()}
-                </span>
-              </span>
-            </div>
-          </div>
-        </div>
-
         {!isGameComplete && (
           <>
             {/* Add Strike */}
