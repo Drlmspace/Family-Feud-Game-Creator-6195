@@ -4,10 +4,10 @@ import { useGame } from '../context/GameContext';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiX, FiSkipForward, FiRotateCcw, FiRefreshCw, FiShuffle, FiAward, FiZap, FiShield } = FiIcons;
+const { FiX, FiSkipForward, FiRotateCcw, FiRefreshCw, FiShuffle, FiAward, FiZap, FiShield, FiPlay, FiPause, FiSquare, FiVolume2 } = FiIcons;
 
 function GameControls() {
-  const { state, dispatch } = useGame();
+  const { state, dispatch, getSoundStatus } = useGame();
 
   const handleAddStrike = () => {
     dispatch({ type: 'ADD_STRIKE' });
@@ -59,6 +59,25 @@ function GameControls() {
     }
   };
 
+  // Game Start Sound Controls
+  const handlePlayGameStartSound = () => {
+    dispatch({ type: 'PLAY_SOUND', payload: 'gameStart' });
+  };
+
+  const handlePauseGameStartSound = () => {
+    dispatch({ type: 'PAUSE_SOUND', payload: 'gameStart' });
+  };
+
+  const handleStopGameStartSound = () => {
+    dispatch({ type: 'STOP_SOUND', payload: 'gameStart' });
+  };
+
+  const handleResumeGameStartSound = () => {
+    dispatch({ type: 'RESUME_SOUND', payload: 'gameStart' });
+  };
+
+  const gameStartSoundStatus = getSoundStatus('gameStart');
+
   const isGameComplete = state.currentQuestionIndex >= state.questions.length;
   const canStartFastMoney = isGameComplete;
 
@@ -67,6 +86,61 @@ function GameControls() {
       <h3 className="text-xl font-bold text-white mb-6">Game Controls</h3>
       
       <div className="space-y-3">
+        {/* Game Start Sound Controls */}
+        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+          <h4 className="text-lg font-semibold text-white mb-3 flex items-center space-x-2">
+            <SafeIcon icon={FiVolume2} />
+            <span>Game Start Music</span>
+          </h4>
+          
+          <div className="flex items-center space-x-2 mb-3">
+            <motion.button
+              onClick={handlePlayGameStartSound}
+              disabled={gameStartSoundStatus === 'playing'}
+              className="bg-green-500 hover:bg-green-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors text-sm"
+              whileHover={{ scale: gameStartSoundStatus === 'playing' ? 1 : 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <SafeIcon icon={FiPlay} />
+              <span>Play</span>
+            </motion.button>
+
+            <motion.button
+              onClick={gameStartSoundStatus === 'paused' ? handleResumeGameStartSound : handlePauseGameStartSound}
+              disabled={gameStartSoundStatus === 'stopped'}
+              className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-black px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors text-sm"
+              whileHover={{ scale: gameStartSoundStatus === 'stopped' ? 1 : 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <SafeIcon icon={gameStartSoundStatus === 'paused' ? FiPlay : FiPause} />
+              <span>{gameStartSoundStatus === 'paused' ? 'Resume' : 'Pause'}</span>
+            </motion.button>
+
+            <motion.button
+              onClick={handleStopGameStartSound}
+              disabled={gameStartSoundStatus === 'stopped'}
+              className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors text-sm"
+              whileHover={{ scale: gameStartSoundStatus === 'stopped' ? 1 : 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <SafeIcon icon={FiSquare} />
+              <span>Stop</span>
+            </motion.button>
+          </div>
+
+          <div className="text-center">
+            <span className={`text-xs px-2 py-1 rounded ${
+              gameStartSoundStatus === 'playing' ? 'bg-green-500/20 text-green-400' :
+              gameStartSoundStatus === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
+              'bg-gray-500/20 text-gray-400'
+            }`}>
+              {gameStartSoundStatus === 'playing' ? '🎵 Playing' :
+               gameStartSoundStatus === 'paused' ? '⏸️ Paused' :
+               '⏹️ Stopped'}
+            </span>
+          </div>
+        </div>
+
         {!isGameComplete && (
           <>
             {/* Add Strike */}

@@ -100,23 +100,22 @@ const initialState = {
   gamePhase: 'playing', // 'playing', 'steal', 'round-end', 'fast-money', 'fast-money-player2', 'game-complete'
   currentTeam: 'A',
   roundScore: 0,
-  fastMoneyAnswers: {
-    player1: [],
-    player2: []
-  },
+  fastMoneyAnswers: { player1: [], player2: [] },
   fastMoneyScore: 0,
   winningTeam: null,
   roundHistory: [], // Track round winners and scores
   activeSounds: {
-    gameStart: null,
-    roundEnd: null
+    gameStart: 'stopped',
+    roundEnd: 'stopped'
   }
 };
 
 // Global sound management
 const activeSoundElements = {
   gameStart: null,
-  roundEnd: null
+  roundEnd: null,
+  correctAnswer: null,
+  wrongAnswer: null
 };
 
 // Sound utility functions
@@ -132,8 +131,8 @@ const playSound = (url, soundType) => {
 
       // Check if it's a video file (mp4, webm, etc.)
       const isVideo = /\.(mp4|webm|ogg|avi|mov)$/i.test(url);
-      
       let element;
+
       if (isVideo) {
         // Create a video element for video files
         element = document.createElement('video');
@@ -144,7 +143,7 @@ const playSound = (url, soundType) => {
 
       element.src = url;
       element.volume = 0.5; // Set volume to 50%
-      
+
       // Store reference for control
       activeSoundElements[soundType] = element;
 
@@ -196,10 +195,7 @@ const getSoundStatus = (soundType) => {
 const resetAllAnswers = (questions) => {
   return questions.map(question => ({
     ...question,
-    answers: question.answers.map(answer => ({
-      ...answer,
-      revealed: false
-    }))
+    answers: question.answers.map(answer => ({ ...answer, revealed: false }))
   }));
 };
 
@@ -208,10 +204,7 @@ function gameReducer(state, action) {
     case 'UPDATE_GAME_SETTINGS':
       return {
         ...state,
-        gameSettings: {
-          ...state.gameSettings,
-          ...action.payload
-        }
+        gameSettings: { ...state.gameSettings, ...action.payload }
       };
 
     case 'UPDATE_SOUND_SETTINGS':
@@ -219,10 +212,7 @@ function gameReducer(state, action) {
         ...state,
         gameSettings: {
           ...state.gameSettings,
-          sounds: {
-            ...state.gameSettings.sounds,
-            ...action.payload
-          }
+          sounds: { ...state.gameSettings.sounds, ...action.payload }
         }
       };
 
@@ -232,40 +222,28 @@ function gameReducer(state, action) {
       playSound(soundUrl, soundType);
       return {
         ...state,
-        activeSounds: {
-          ...state.activeSounds,
-          [soundType]: 'playing'
-        }
+        activeSounds: { ...state.activeSounds, [soundType]: 'playing' }
       };
 
     case 'PAUSE_SOUND':
       pauseSound(action.payload);
       return {
         ...state,
-        activeSounds: {
-          ...state.activeSounds,
-          [action.payload]: 'paused'
-        }
+        activeSounds: { ...state.activeSounds, [action.payload]: 'paused' }
       };
 
     case 'STOP_SOUND':
       stopSound(action.payload);
       return {
         ...state,
-        activeSounds: {
-          ...state.activeSounds,
-          [action.payload]: 'stopped'
-        }
+        activeSounds: { ...state.activeSounds, [action.payload]: 'stopped' }
       };
 
     case 'RESUME_SOUND':
       resumeSound(action.payload);
       return {
         ...state,
-        activeSounds: {
-          ...state.activeSounds,
-          [action.payload]: 'playing'
-        }
+        activeSounds: { ...state.activeSounds, [action.payload]: 'playing' }
       };
 
     case 'UPDATE_SOUND_STATUS':
@@ -402,18 +380,13 @@ function gameReducer(state, action) {
       // Determine winning team based on accumulated scores
       const winningTeam = state.teamAScore > state.teamBScore ? 'A' : 
                          state.teamBScore > state.teamAScore ? 'B' : 'A'; // Default to A if tied
-      
-      // Play game start sound
-      playSound(state.gameSettings.sounds.gameStart, 'gameStart');
 
+      // DO NOT play game start sound automatically
       return {
         ...state,
         gamePhase: 'fast-money',
         winningTeam,
-        fastMoneyAnswers: {
-          player1: [],
-          player2: []
-        },
+        fastMoneyAnswers: { player1: [], player2: [] },
         fastMoneyScore: 0
       };
 
@@ -446,9 +419,8 @@ function gameReducer(state, action) {
         stopSound(soundType);
       });
 
-      // Play game start sound
-      playSound(state.gameSettings.sounds.gameStart, 'gameStart');
-
+      // DO NOT play game start sound automatically
+      
       // Reset all answers to be covered up
       const resetQuestions = resetAllAnswers(state.questions);
 
@@ -505,7 +477,6 @@ function gameReducer(state, action) {
     case 'NO_STEAL':
       // No points awarded, just end the round
       playSound(state.gameSettings.sounds.roundEnd, 'roundEnd');
-      
       return {
         ...state,
         roundScore: 0,
