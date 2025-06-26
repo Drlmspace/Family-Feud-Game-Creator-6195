@@ -4,13 +4,26 @@ import { useGame } from '../context/GameContext';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiPlus, FiEdit2, FiTrash2, FiSave, FiX, FiZap, FiLogOut, FiSettings, FiVolume2, FiPlay, FiDownload } = FiIcons;
+const {
+  FiPlus,
+  FiEdit2,
+  FiTrash2,
+  FiSave,
+  FiX,
+  FiZap,
+  FiLogOut,
+  FiSettings,
+  FiVolume2,
+  FiPlay,
+  FiDownload
+} = FiIcons;
 
 function AdminPanel({ onLogout }) {
   const { state, dispatch } = useGame();
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [activeTab, setActiveTab] = useState('regular'); // 'regular', 'fast-money', 'settings'
+
   const [formData, setFormData] = useState({
     question: '',
     answers: [
@@ -21,6 +34,7 @@ function AdminPanel({ onLogout }) {
       { text: '', points: 0 }
     ]
   });
+
   const [settingsData, setSettingsData] = useState({
     title: state.gameSettings.title,
     sounds: { ...state.gameSettings.sounds }
@@ -83,6 +97,7 @@ function AdminPanel({ onLogout }) {
 
       const actionType = activeTab === 'fast-money' ? 'ADD_FAST_MONEY_QUESTION' : 'ADD_QUESTION';
       dispatch({ type: actionType, payload: newQuestion });
+
       resetForm();
       setShowAddForm(false);
     }
@@ -109,6 +124,7 @@ function AdminPanel({ onLogout }) {
 
       const actionType = activeTab === 'fast-money' ? 'UPDATE_FAST_MONEY_QUESTION' : 'UPDATE_QUESTION';
       dispatch({ type: actionType, payload: updatedQuestion });
+
       resetForm();
       setEditingQuestion(null);
     }
@@ -144,13 +160,13 @@ function AdminPanel({ onLogout }) {
 
   const generateCSVContent = (questions) => {
     let csvContent = 'Question Number,Question,Answer 1,Points 1,Answer 2,Points 2,Answer 3,Points 3,Answer 4,Points 4,Answer 5,Points 5\n';
-    
+
     questions.forEach((question, index) => {
       const row = [
         index + 1,
         escapeCSVField(question.question)
       ];
-      
+
       // Add answers and points (up to 5)
       for (let i = 0; i < 5; i++) {
         if (question.answers[i]) {
@@ -161,10 +177,10 @@ function AdminPanel({ onLogout }) {
           row.push('');
         }
       }
-      
+
       csvContent += row.join(',') + '\n';
     });
-    
+
     return csvContent;
   };
 
@@ -201,19 +217,19 @@ function AdminPanel({ onLogout }) {
       alert('No questions to export!');
       return;
     }
-    
+
     let csvContent = '';
-    
+
     if (state.questions.length > 0) {
-      csvContent += '=== REGULAR QUESTIONS ===\n';
+      csvContent += '===REGULAR QUESTIONS===\n';
       csvContent += 'Question Number,Question,Answer 1,Points 1,Answer 2,Points 2,Answer 3,Points 3,Answer 4,Points 4,Answer 5,Points 5\n';
-      
+
       state.questions.forEach((question, index) => {
         const row = [
           index + 1,
           escapeCSVField(question.question)
         ];
-        
+
         for (let i = 0; i < 5; i++) {
           if (question.answers[i]) {
             row.push(escapeCSVField(question.answers[i].text));
@@ -223,23 +239,23 @@ function AdminPanel({ onLogout }) {
             row.push('');
           }
         }
-        
+
         csvContent += row.join(',') + '\n';
       });
-      
+
       csvContent += '\n';
     }
-    
+
     if (state.fastMoneyQuestions.length > 0) {
-      csvContent += '=== FAST MONEY QUESTIONS ===\n';
+      csvContent += '===FAST MONEY QUESTIONS===\n';
       csvContent += 'Question Number,Question,Answer 1,Points 1,Answer 2,Points 2,Answer 3,Points 3,Answer 4,Points 4,Answer 5,Points 5\n';
-      
+
       state.fastMoneyQuestions.forEach((question, index) => {
         const row = [
           index + 1,
           escapeCSVField(question.question)
         ];
-        
+
         for (let i = 0; i < 5; i++) {
           if (question.answers[i]) {
             row.push(escapeCSVField(question.answers[i].text));
@@ -249,11 +265,11 @@ function AdminPanel({ onLogout }) {
             row.push('');
           }
         }
-        
+
         csvContent += row.join(',') + '\n';
       });
     }
-    
+
     downloadCSV(csvContent, 'family-feud-all-questions.csv');
   };
 
@@ -269,6 +285,7 @@ function AdminPanel({ onLogout }) {
               <span className="text-green-400 text-sm font-medium">Authenticated</span>
             </div>
           </div>
+
           <div className="flex items-center space-x-4">
             {activeTab !== 'settings' && (
               <motion.button
@@ -281,6 +298,7 @@ function AdminPanel({ onLogout }) {
                 <span>Add Question</span>
               </motion.button>
             )}
+
             <motion.button
               onClick={handleLogout}
               className="bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-lg flex items-center space-x-2 transition-colors"
@@ -298,8 +316,8 @@ function AdminPanel({ onLogout }) {
           <motion.button
             onClick={() => setActiveTab('regular')}
             className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-              activeTab === 'regular' 
-                ? 'bg-blue-500 text-white' 
+              activeTab === 'regular'
+                ? 'bg-blue-500 text-white'
                 : 'bg-white/10 text-white/70 hover:bg-white/20'
             }`}
             whileHover={{ scale: 1.02 }}
@@ -307,11 +325,12 @@ function AdminPanel({ onLogout }) {
           >
             Regular Questions ({state.questions.length})
           </motion.button>
+
           <motion.button
             onClick={() => setActiveTab('fast-money')}
             className={`px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2 ${
-              activeTab === 'fast-money' 
-                ? 'bg-yellow-500 text-black' 
+              activeTab === 'fast-money'
+                ? 'bg-yellow-500 text-black'
                 : 'bg-white/10 text-white/70 hover:bg-white/20'
             }`}
             whileHover={{ scale: 1.02 }}
@@ -320,11 +339,12 @@ function AdminPanel({ onLogout }) {
             <SafeIcon icon={FiZap} />
             <span>Fast Money ({state.fastMoneyQuestions.length})</span>
           </motion.button>
+
           <motion.button
             onClick={() => setActiveTab('settings')}
             className={`px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2 ${
-              activeTab === 'settings' 
-                ? 'bg-purple-500 text-white' 
+              activeTab === 'settings'
+                ? 'bg-purple-500 text-white'
                 : 'bg-white/10 text-white/70 hover:bg-white/20'
             }`}
             whileHover={{ scale: 1.02 }}
@@ -356,6 +376,7 @@ function AdminPanel({ onLogout }) {
                 <SafeIcon icon={FiDownload} />
                 <span>Regular Questions</span>
               </motion.button>
+
               <motion.button
                 onClick={handleExportFastMoneyQuestions}
                 disabled={state.fastMoneyQuestions.length === 0}
@@ -366,6 +387,7 @@ function AdminPanel({ onLogout }) {
                 <SafeIcon icon={FiZap} />
                 <span>Fast Money</span>
               </motion.button>
+
               <motion.button
                 onClick={handleExportAllQuestions}
                 disabled={state.questions.length === 0 && state.fastMoneyQuestions.length === 0}
@@ -379,8 +401,7 @@ function AdminPanel({ onLogout }) {
             </div>
             <div className="mt-4 p-3 bg-blue-500/10 border border-blue-400/30 rounded-lg">
               <p className="text-blue-400 text-sm">
-                <strong>Judge Tip:</strong> Export questions before the show starts to have a printed reference sheet. 
-                This helps judges verify answers and point values during gameplay without needing to look at the screen.
+                <strong>Judge Tip:</strong> Export questions before the show starts to have a printed reference sheet. This helps judges verify answers and point values during gameplay without needing to look at the screen.
               </p>
             </div>
           </div>
@@ -391,7 +412,7 @@ function AdminPanel({ onLogout }) {
           <div className="space-y-6">
             <div className="bg-white/5 rounded-xl p-6 border border-white/10">
               <h3 className="text-xl font-bold text-white mb-6">Game Settings</h3>
-              
+
               {/* Game Title */}
               <div className="mb-6">
                 <label className="block text-white font-medium mb-2">Game Title</label>
@@ -410,6 +431,7 @@ function AdminPanel({ onLogout }) {
                   <SafeIcon icon={FiVolume2} />
                   <span>Sound Settings</span>
                 </h4>
+
                 {Object.entries(settingsData.sounds).map(([soundType, url]) => (
                   <div key={soundType} className="space-y-2">
                     <label className="block text-white/90 font-medium capitalize">
@@ -454,10 +476,10 @@ function AdminPanel({ onLogout }) {
               <div className="mt-6 p-4 bg-yellow-500/10 border border-yellow-400/30 rounded-lg">
                 <h5 className="text-yellow-400 font-semibold mb-2">Sound URL Examples:</h5>
                 <div className="text-white/70 text-sm space-y-1">
-                  <div>• Wrong Answer: Buzzer or error sound</div>
-                  <div>• Correct Answer: Ding or success sound</div>
-                  <div>• Game Start: Fanfare or theme music</div>
-                  <div>• Round End: Victory or completion sound</div>
+                  <div>• <strong>Wrong Answer:</strong> Buzzer or error sound (plays when X is clicked)</div>
+                  <div>• <strong>Correct Answer:</strong> Ding or success sound (plays when answer is revealed)</div>
+                  <div>• <strong>Game Start:</strong> Fanfare or theme music</div>
+                  <div>• <strong>Round End:</strong> Victory or completion sound</div>
                 </div>
                 <p className="text-white/50 text-xs mt-2">
                   Use direct links to audio files (.mp3, .wav, .ogg). Some free sound sites: freesound.org, zapsplat.com
@@ -480,6 +502,7 @@ function AdminPanel({ onLogout }) {
                 {editingQuestion ? 'Edit Question' : 'Add New Question'}
                 {activeTab === 'fast-money' && <span className="text-yellow-400"> (Fast Money)</span>}
               </h3>
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-white mb-2 font-medium">Question</label>
@@ -491,6 +514,7 @@ function AdminPanel({ onLogout }) {
                     placeholder="Enter your question..."
                   />
                 </div>
+
                 <div>
                   <label className="block text-white mb-2 font-medium">
                     Answers {activeTab === 'fast-money' ? '(Fast Money - Top 5)' : '(sorted by points)'}
@@ -517,6 +541,7 @@ function AdminPanel({ onLogout }) {
                     ))}
                   </div>
                 </div>
+
                 <div className="flex space-x-4">
                   <motion.button
                     onClick={editingQuestion ? handleUpdateQuestion : handleAddQuestion}
@@ -527,6 +552,7 @@ function AdminPanel({ onLogout }) {
                     <SafeIcon icon={FiSave} />
                     <span>{editingQuestion ? 'Update' : 'Save'}</span>
                   </motion.button>
+
                   <motion.button
                     onClick={() => {
                       resetForm();
@@ -552,6 +578,7 @@ function AdminPanel({ onLogout }) {
             <h3 className="text-xl font-bold text-white mb-4">
               {activeTab === 'fast-money' ? 'Fast Money Questions' : 'Regular Questions'} ({currentQuestions.length})
             </h3>
+
             {currentQuestions.map((question, index) => (
               <motion.div
                 key={question.id}
@@ -574,6 +601,7 @@ function AdminPanel({ onLogout }) {
                       ))}
                     </div>
                   </div>
+
                   <div className="flex space-x-2 ml-4">
                     <motion.button
                       onClick={() => handleEditQuestion(question)}
@@ -583,6 +611,7 @@ function AdminPanel({ onLogout }) {
                     >
                       <SafeIcon icon={FiEdit2} />
                     </motion.button>
+
                     <motion.button
                       onClick={() => handleDeleteQuestion(question.id)}
                       className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
@@ -595,6 +624,7 @@ function AdminPanel({ onLogout }) {
                 </div>
               </motion.div>
             ))}
+
             {currentQuestions.length === 0 && (
               <div className="text-center py-12">
                 <div className="text-white/50 text-lg">

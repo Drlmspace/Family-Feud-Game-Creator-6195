@@ -6,9 +6,9 @@ const initialState = {
   gameSettings: {
     title: 'Family Feud',
     sounds: {
-      wrongAnswer: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
+      wrongAnswer: 'https://app1.sharemyimage.com/2025/06/26/sestrike.mp4',
       gameStart: 'https://app1.sharemyimage.com/2025/06/26/Selong.mp4',
-      correctAnswer: 'https://www.soundjay.com/misc/sounds/beep-07a.wav',
+      correctAnswer: 'https://app1.sharemyimage.com/2025/06/26/SECorrect.mp4',
       roundEnd: 'https://app1.sharemyimage.com/2025/06/26/SEopeningshort.mp4'
     }
   },
@@ -100,6 +100,8 @@ const initialState = {
   gamePhase: 'playing', // 'playing', 'steal', 'round-end', 'fast-money', 'fast-money-player2', 'game-complete'
   currentTeam: 'A',
   roundScore: 0,
+  stealingTeam: null, // Track which team is attempting the steal
+  originalTeam: null, // Track the original team that had control before steal
   fastMoneyAnswers: { player1: [], player2: [] },
   fastMoneyScore: 0,
   winningTeam: null,
@@ -142,7 +144,7 @@ const playSound = (url, soundType) => {
       }
 
       element.src = url;
-      element.volume = 0.5; // Set volume to 50%
+      element.volume = 0.8; // Slightly higher volume for better audibility
 
       // Store reference for control
       activeSoundElements[soundType] = element;
@@ -303,34 +305,79 @@ function gameReducer(state, action) {
       if (currentQuestion && currentQuestion.answers[answerIndex]) {
         currentQuestion.answers[answerIndex].revealed = true;
         
-        // Play correct answer sound
+        // ALWAYS play correct answer sound when revealing an answer
         playSound(state.gameSettings.sounds.correctAnswer, 'correctAnswer');
 
-        return {
-          ...state,
-          questions: updatedQuestions,
-          roundScore: state.roundScore + currentQuestion.answers[answerIndex].points
-        };
+        // Only add points if we're NOT in steal phase
+        if (state.gamePhase !== 'steal') {
+          return {
+            ...state,
+            questions: updatedQuestions,
+            roundScore: state.roundScore + currentQuestion.answers[answerIndex].points
+          };
+        } else {
+          // In steal phase, just reveal the answer without adding points
+          return {
+            ...state,
+            questions: updatedQuestions
+          };
+        }
       }
       return state;
 
     case 'ADD_STRIKE':
       const newStrikes = state.strikes + 1;
       
-      // Play wrong answer sound
+      // ALWAYS play wrong answer sound when adding a strike (X clicked)
       playSound(state.gameSettings.sounds.wrongAnswer, 'wrongAnswer');
 
-      if (newStrikes >= 3) {
+      // Different behavior based on game phase
+      if (state.gamePhase === 'steal') {
+        // During steal phase: one strike = points go to ORIGINAL team (not current team)
+        const originalTeam = state.originalTeam; // The team that had control before steal
+        const originalTeamKey = originalTeam === 'A' ? 'teamAScore' : 'teamBScore';
+        const originalTeamScore = state[originalTeamKey] + state.roundScore;
+        
+        // Play round end sound
+        playSound(state.gameSettings.sounds.roundEnd, 'roundEnd');
+
+        // Add to round history - original team gets points due to failed steal
+        const failedStealRound = {
+          round: state.currentQuestionIndex + 1,
+          team: originalTeam,
+          points: state.roundScore,
+          question: state.questions[state.currentQuestionIndex]?.question,
+          type: 'failed-steal'
+        };
+
         return {
           ...state,
-          strikes: newStrikes,
-          gamePhase: 'steal'
+          [originalTeamKey]: originalTeamScore,
+          roundScore: 0,
+          strikes: 0,
+          gamePhase: 'round-end',
+          stealingTeam: null,
+          originalTeam: null,
+          currentTeam: 'A', // Reset to Team A for next round
+          roundHistory: [...state.roundHistory, failedStealRound]
+        };
+      } else {
+        // Normal play: 3 strikes = steal opportunity
+        if (newStrikes >= 3) {
+          return {
+            ...state,
+            strikes: newStrikes,
+            gamePhase: 'steal',
+            originalTeam: state.currentTeam, // Store the original team
+            stealingTeam: state.currentTeam === 'A' ? 'B' : 'A', // Other team gets to steal
+            currentTeam: state.currentTeam === 'A' ? 'B' : 'A' // Switch to stealing team
+          };
+        }
+        return {
+          ...state,
+          strikes: newStrikes
         };
       }
-      return {
-        ...state,
-        strikes: newStrikes
-      };
 
     case 'AWARD_POINTS':
       const teamKey = action.payload.team === 'A' ? 'teamAScore' : 'teamBScore';
@@ -353,6 +400,9 @@ function gameReducer(state, action) {
         roundScore: 0,
         strikes: 0,
         gamePhase: 'round-end',
+        stealingTeam: null,
+        originalTeam: null,
+        currentTeam: 'A', // Reset to Team A for next round
         roundHistory: [...state.roundHistory, roundWinner]
       };
 
@@ -365,12 +415,18 @@ function gameReducer(state, action) {
           strikes: 0,
           gamePhase: 'playing',
           roundScore: 0,
-          currentTeam: 'A'
+          currentTeam: 'A',
+          stealingTeam: null,
+          originalTeam: null
         };
       }
       return state;
 
     case 'SWITCH_TEAM':
+      // Can't switch teams during steal phase
+      if (state.gamePhase === 'steal') {
+        return state;
+      }
       return {
         ...state,
         currentTeam: state.currentTeam === 'A' ? 'B' : 'A'
@@ -381,13 +437,14 @@ function gameReducer(state, action) {
       const winningTeam = state.teamAScore > state.teamBScore ? 'A' : 
                          state.teamBScore > state.teamAScore ? 'B' : 'A'; // Default to A if tied
 
-      // DO NOT play game start sound automatically
       return {
         ...state,
         gamePhase: 'fast-money',
         winningTeam,
         fastMoneyAnswers: { player1: [], player2: [] },
-        fastMoneyScore: 0
+        fastMoneyScore: 0,
+        stealingTeam: null,
+        originalTeam: null
       };
 
     case 'SUBMIT_FAST_MONEY_PLAYER1':
@@ -419,8 +476,6 @@ function gameReducer(state, action) {
         stopSound(soundType);
       });
 
-      // DO NOT play game start sound automatically
-      
       // Reset all answers to be covered up
       const resetQuestions = resetAllAnswers(state.questions);
 
@@ -446,7 +501,9 @@ function gameReducer(state, action) {
         strikes: 0,
         gamePhase: 'playing',
         roundScore: 0,
-        currentTeam: 'A'
+        currentTeam: 'A',
+        stealingTeam: null,
+        originalTeam: null
       };
 
     case 'STEAL_POINTS':
@@ -471,6 +528,9 @@ function gameReducer(state, action) {
         roundScore: 0,
         strikes: 0,
         gamePhase: 'round-end',
+        stealingTeam: null,
+        originalTeam: null,
+        currentTeam: 'A', // Reset to Team A for next round
         roundHistory: [...state.roundHistory, stealRound]
       };
 
@@ -481,7 +541,10 @@ function gameReducer(state, action) {
         ...state,
         roundScore: 0,
         strikes: 0,
-        gamePhase: 'round-end'
+        gamePhase: 'round-end',
+        stealingTeam: null,
+        originalTeam: null,
+        currentTeam: 'A' // Reset to Team A for next round
       };
 
     case 'LOAD_DATA':

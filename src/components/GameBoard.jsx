@@ -41,6 +41,7 @@ function GameBoard() {
       <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 text-center">
         <h2 className="text-2xl font-bold text-white">Game Complete!</h2>
         <p className="text-white/70 mt-2">All questions have been played.</p>
+        
         <div className="mt-6 p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl border border-yellow-400/30">
           <div className="text-yellow-400 font-bold text-lg mb-2">Final Scores</div>
           <div className="grid grid-cols-2 gap-4">
@@ -55,9 +56,11 @@ function GameBoard() {
           </div>
           <div className="mt-4 text-center">
             <div className="text-yellow-400 font-bold">
-              {state.teamAScore > state.teamBScore ? 'Team A Wins!' :
-               state.teamBScore > state.teamAScore ? 'Team B Wins!' :
-               'It\'s a Tie!'}
+              {state.teamAScore > state.teamBScore
+                ? 'Team A Wins!'
+                : state.teamBScore > state.teamAScore
+                ? 'Team B Wins!'
+                : "It's a Tie!"}
             </div>
           </div>
         </div>
@@ -169,7 +172,10 @@ function GameBoard() {
               <span className="font-bold text-2xl">STEAL OPPORTUNITY!</span>
             </div>
             <div className="text-sm mt-1">
-              {state.roundScore} points available to steal
+              Team {state.stealingTeam} gets ONE chance to steal {state.roundScore} points
+            </div>
+            <div className="text-xs mt-1 text-red-200">
+              One wrong answer = points go to Team {state.originalTeam}
             </div>
           </div>
         </motion.div>
@@ -184,9 +190,7 @@ function GameBoard() {
         >
           <div className="bg-green-500 text-white px-8 py-4 rounded-lg inline-block">
             <span className="font-bold text-2xl">ROUND COMPLETE!</span>
-            <div className="text-sm mt-1">
-              Points have been awarded
-            </div>
+            <div className="text-sm mt-1">Points have been awarded</div>
           </div>
         </motion.div>
       )}
