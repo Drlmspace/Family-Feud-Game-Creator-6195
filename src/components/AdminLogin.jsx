@@ -22,11 +22,12 @@ function AdminLogin({ onLogin }) {
     // Simulate a brief loading delay for better UX
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    if (credentials.username === 'GameShowHost' && credentials.password === 'Strike3Times') {
+    if (credentials.username === 'GameMicey' && credentials.password === 'RUReady25?') {
       onLogin();
     } else {
       setError('Invalid username or password');
     }
+
     setIsLoading(false);
   };
 
